@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+
+// Function to handle OpenSSL errors
+void handleOpenSSLErrors(void) {
+    ERR_print_errors_fp(stderr);
+    abort();
+}
+
+int main() {
+    const char *plaintext = "Hello, RSA!";
+    unsigned char ciphertext[256];
+    unsigned char decryptedtext[256];
+    RSA *rsa = NULL;
+    FILE *fp = NULL;
+
+    // Generate RSA key pair
+    rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+    if (rsa == NULL) {
+        fprintf(stderr, "RSA key generation failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    // Encryption
+    int ciphertext_len = RSA_public_encrypt(strlen(plaintext) + 1, (unsigned char *)plaintext,
+                                            ciphertext, rsa, RSA_PKCS1_PADDING);
+    if (ciphertext_len == -1) {
+        fprintf(stderr, "RSA encryption failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    printf("Encrypted message: %s\n", ciphertext);
+
+    // Decryption
+    int decryptedtext_len = RSA_private_decrypt(ciphertext_len, ciphertext,
+                                                decryptedtext, rsa, RSA_PKCS1_PADDING);
+    if (decryptedtext_len == -1) {
+        fprintf(stderr, "RSA decryption failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    printf("Decrypted message: %s\n", decryptedtext);
+
+    // Clean up
+    RSA_free(rsa);
+    return 0;
+}
