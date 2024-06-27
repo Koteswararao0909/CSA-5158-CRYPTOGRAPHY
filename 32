@@ -1,0 +1,135 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/dsa.h>
+#include <openssl/sha.h>
+
+// Generate a DSA key pair
+DSA* generate_dsa_keypair() {
+    DSA *dsa = DSA_new();
+    if (dsa == NULL) {
+        fprintf(stderr, "Error initializing DSA\n");
+        return NULL;
+    }
+    
+    // Set DSA parameters (typically predefined or generated)
+    // Using predefined parameters for simplicity
+    DSA_generate_parameters_ex(dsa, 1024, NULL, 0, NULL, NULL, NULL);
+    if (!DSA_generate_key(dsa)) {
+        fprintf(stderr, "Error generating DSA key pair\n");
+        DSA_free(dsa);
+        return NULL;
+    }
+    
+    return dsa;
+}
+
+// Sign a message using DSA
+int sign_dsa_message(DSA *dsa, const unsigned char *message, size_t message_len,
+                     unsigned char **signature, size_t *sig_len) {
+    DSA_SIG *sig = DSA_do_sign(message, message_len, dsa);
+    if (sig == NULL) {
+        fprintf(stderr, "Error signing message\n");
+        return 0;
+    }
+    
+    // Convert DSA_SIG to DER format (for simplicity, not actual DER encoding)
+    *sig_len = BN_num_bytes(sig->r) + BN_num_bytes(sig->s);
+    *signature = (unsigned char *)malloc(*sig_len);
+    if (*signature == NULL) {
+        fprintf(stderr, "Memory allocation error\n");
+        DSA_SIG_free(sig);
+        return 0;
+    }
+    
+    // Copy r and s components into the signature buffer
+    BN_bn2bin(sig->r, *signature);
+    BN_bn2bin(sig->s, *signature + BN_num_bytes(sig->r));
+    
+    DSA_SIG_free(sig);
+    return 1;
+}
+
+// Verify a DSA signature
+int verify_dsa_signature(DSA *dsa, const unsigned char *message, size_t message_len,
+                         const unsigned char *signature, size_t sig_len) {
+    DSA_SIG *sig = DSA_SIG_new();
+    if (sig == NULL) {
+        fprintf(stderr, "Error allocating DSA_SIG\n");
+        return 0;
+    }
+    
+    // Parse r and s from signature (not actual DER parsing)
+    BIGNUM *r = BN_bin2bn(signature, sig_len / 2, NULL);
+    BIGNUM *s = BN_bin2bn(signature + sig_len / 2, sig_len / 2, NULL);
+    if (r == NULL || s == NULL) {
+        fprintf(stderr, "Error parsing signature components\n");
+        BN_free(r);
+        BN_free(s);
+        DSA_SIG_free(sig);
+        return 0;
+    }
+    
+    sig->r = r;
+    sig->s = s;
+    
+    int result = DSA_do_verify(message, message_len, sig, dsa);
+    
+    DSA_SIG_free(sig);
+    return result;
+}
+
+int main() {
+    DSA *dsa = generate_dsa_keypair();
+    if (dsa == NULL) {
+        fprintf(stderr, "Error generating DSA key pair\n");
+        return 1;
+    }
+    
+    const unsigned char *message = (unsigned char *)"Hello, DSA!";
+    size_t message_len = strlen((const char *)message);
+    
+    // Sign the message multiple times to observe different signatures
+    unsigned char *signature1 = NULL, *signature2 = NULL;
+    size_t sig_len1, sig_len2;
+    
+    if (!sign_dsa_message(dsa, message, message_len, &signature1, &sig_len1)) {
+        fprintf(stderr, "Error signing message\n");
+        DSA_free(dsa);
+        return 1;
+    }
+    
+    if (!sign_dsa_message(dsa, message, message_len, &signature2, &sig_len2)) {
+        fprintf(stderr, "Error signing message\n");
+        free(signature1);
+        DSA_free(dsa);
+        return 1;
+    }
+    
+    // Display signatures
+    printf("Signature 1: ");
+    for (size_t i = 0; i < sig_len1; ++i) {
+        printf("%02x", signature1[i]);
+    }
+    printf("\n");
+    
+    printf("Signature 2: ");
+    for (size_t i = 0; i < sig_len2; ++i) {
+        printf("%02x", signature2[i]);
+    }
+    printf("\n");
+    
+    // Verify signatures (just to show verification, normally done by other party)
+    int verified1 = verify_dsa_signature(dsa, message, message_len, signature1, sig_len1);
+    int verified2 = verify_dsa_signature(dsa, message, message_len, signature2, sig_len2);
+    
+    printf("Signature 1 verified: %s\n", verified1 ? "Yes" : "No");
+    printf("Signature 2 verified: %s\n", verified2 ? "Yes" : "No");
+    
+    // Cleanup
+    free(signature1);
+    free(signature2);
+    DSA_free(dsa);
+    
+    return 0;
+}
