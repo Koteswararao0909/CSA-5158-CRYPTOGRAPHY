@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <openssl/dh.h>
+#include <openssl/engine.h>
+
+// Function to handle OpenSSL errors
+void handleOpenSSLErrors(void) {
+    ERR_print_errors_fp(stderr);
+    abort();
+}
+
+int main() {
+    DH *dh = DH_new();
+    int codes;
+
+    // Generate DH parameters
+    if (dh == NULL || !DH_generate_parameters_ex(dh, 2048, DH_GENERATOR_2, NULL)) {
+        fprintf(stderr, "DH parameter generation failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    // Generate DH keys
+    if (!DH_generate_key(dh)) {
+        fprintf(stderr, "DH key generation failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    // Print Alice's public key
+    printf("Alice's public key (A): %s\n", BN_bn2hex(dh->pub_key));
+
+    // Simulate exchange of Alice's public key with Bob
+    // In practice, this would be sent to Bob
+
+    // Bob receives Alice's public key (A)
+    BIGNUM *A = BN_new();
+    BN_hex2bn(&A, "Alice's public key (A) as a hex string");
+
+    // Bob computes shared secret
+    if (DH_compute_key(dh->shared_key, A, dh) == -1) {
+        fprintf(stderr, "DH compute shared key failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    // Print Bob's shared secret key (K)
+    printf("Bob's shared secret key (K): %s\n", BN_bn2hex(dh->shared_key));
+
+    // Clean up
+    DH_free(dh);
+    BN_free(A);
+
+    return 0;
+}
