@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/aes.h>
+
+// Function to perform AES ECB encryption
+void aes_ecb_encrypt(const unsigned char *plaintext, unsigned char *ciphertext, const AES_KEY *key, int length) {
+    int blocks = length / AES_BLOCK_SIZE;
+    for (int i = 0; i < blocks; ++i) {
+        AES_encrypt(plaintext + i * AES_BLOCK_SIZE, ciphertext + i * AES_BLOCK_SIZE, key);
+    }
+}
+
+// Function to perform AES ECB decryption
+void aes_ecb_decrypt(const unsigned char *ciphertext, unsigned char *plaintext, const AES_KEY *key, int length) {
+    int blocks = length / AES_BLOCK_SIZE;
+    for (int i = 0; i < blocks; ++i) {
+        AES_decrypt(ciphertext + i * AES_BLOCK_SIZE, plaintext + i * AES_BLOCK_SIZE, key);
+    }
+}
+
+int main() {
+    AES_KEY key;
+    unsigned char plaintext[] = "Hello, ECB mode!";
+    unsigned char ciphertext[sizeof(plaintext)];
+    unsigned char decryptedtext[sizeof(plaintext)];
+
+    // Set AES encryption key
+    unsigned char aes_key[AES_BLOCK_SIZE] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
+                                              0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
+    AES_set_encrypt_key(aes_key, 128, &key);
+
+    // Encrypt plaintext
+    aes_ecb_encrypt(plaintext, ciphertext, &key, sizeof(plaintext));
+    printf("Ciphertext: ");
+    for (int i = 0; i < sizeof(plaintext); ++i) {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\n");
+
+    // Decrypt ciphertext
+    AES_set_decrypt_key(aes_key, 128, &key);
+    aes_ecb_decrypt(ciphertext, decryptedtext, &key, sizeof(plaintext));
+    decryptedtext[sizeof(plaintext) - 1] = '\0'; // Null-terminate decrypted text
+    printf("Decrypted text: %s\n", decryptedtext);
+
+    return 0;
+}
