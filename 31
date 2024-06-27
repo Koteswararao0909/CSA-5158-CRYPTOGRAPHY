@@ -1,0 +1,54 @@
+#include <stdio.h>
+
+// Constants for block sizes
+#define BLOCK_SIZE_64  64
+#define BLOCK_SIZE_128 128
+
+// Constants Rb for block sizes
+#define Rb_64  0x1B
+#define Rb_128 0x87
+
+// Function to perform left shift on a byte array
+void left_shift(unsigned char *data, int size) {
+    int i;
+    unsigned char carry = 0;
+    
+    for (i = 0; i < size; ++i) {
+        unsigned char next_carry = data[i] >> 7; // Capture the leftmost bit
+        data[i] = (data[i] << 1) | carry;
+        carry = next_carry;
+    }
+    
+    // Apply conditional XOR with Rb if needed
+    if (carry != 0) {
+        data[size - 1] ^= Rb_128; // Adjust for 128-bit block size
+    }
+}
+
+// Function to print the resulting subkey
+void print_subkey(unsigned char *subkey, int size) {
+    printf("Subkey: ");
+    for (int i = 0; i < size; ++i) {
+        printf("%02x", subkey[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    unsigned char block[BLOCK_SIZE_128 / 8] = {0}; // Initialize with all zeros (128-bit block)
+    unsigned char subkey[BLOCK_SIZE_128 / 8];
+
+    // Apply block cipher to the block of all zeros (simulated here)
+    // AES block cipher application would replace this step
+
+    // Generate first subkey
+    memcpy(subkey, block, BLOCK_SIZE_128 / 8);
+    left_shift(subkey, BLOCK_SIZE_128 / 8);
+    print_subkey(subkey, BLOCK_SIZE_128 / 8);
+
+    // Generate second subkey
+    left_shift(subkey, BLOCK_SIZE_128 / 8);
+    print_subkey(subkey, BLOCK_SIZE_128 / 8);
+
+    return 0;
+}
