@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+// Function to handle OpenSSL errors
+void handleOpenSSLErrors(void) {
+    ERR_print_errors_fp(stderr);
+    abort();
+}
+
+// Function to encrypt a message using RSA
+void encryptMessage(const char *message, int *ciphertext, int length, RSA *rsa) {
+    int i;
+    for (i = 0; i < length; ++i) {
+        // Convert character to integer (0-25)
+        int plaintext_num = message[i] - 'A';
+        
+        // Encrypt each plaintext number separately
+        ciphertext[i] = RSA_public_encrypt(sizeof(int), (unsigned char *)&plaintext_num,
+                                           (unsigned char *)&ciphertext[i], rsa, RSA_PKCS1_PADDING);
+        if (ciphertext[i] == -1) {
+            fprintf(stderr, "RSA encryption failed for character %c.\n", message[i]);
+            handleOpenSSLErrors();
+        }
+    }
+}
+
+// Function to decrypt ciphertext using RSA
+void decryptMessage(int *ciphertext, char *decryptedtext, int length, RSA *rsa) {
+    int i;
+    for (i = 0; i < length; ++i) {
+        // Decrypt each ciphertext number separately
+        int decrypted_num = RSA_private_decrypt(sizeof(int), (unsigned char *)&ciphertext[i],
+                                                (unsigned char *)&decryptedtext[i], rsa, RSA_PKCS1_PADDING);
+        if (decrypted_num == -1) {
+            fprintf(stderr, "RSA decryption failed for ciphertext %d.\n", ciphertext[i]);
+            handleOpenSSLErrors();
+        }
+        
+        // Convert decrypted number back to character
+        decryptedtext[i] = decrypted_num + 'A';
+    }
+}
+
+int main() {
+    const char *message = "HELLO"; // Example plaintext message
+    int ciphertext[strlen(message)];
+    char decryptedtext[strlen(message)];
+    RSA *rsa = NULL;
+    FILE *fp = NULL;
+
+    // Generate RSA key pair
+    rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+    if (rsa == NULL) {
+        fprintf(stderr, "RSA key generation failed.\n");
+        handleOpenSSLErrors();
+    }
+
+    // Encrypt message
+    encryptMessage(message, ciphertext, strlen(message), rsa);
+
+    // Print encrypted message (ciphertext)
+    printf("Encrypted message (ciphertext):\n");
+    for (int i = 0; i < strlen(message); ++i) {
+        printf("%d ", ciphertext[i]);
+    }
+    printf("\n");
+
+    // Decrypt message
+    decryptMessage(ciphertext, decryptedtext, strlen(message), rsa);
+    decryptedtext[strlen(message)] = '\0'; // Null-terminate the decrypted text
+
+    // Print decrypted message
+    printf("Decrypted message (plaintext): %s\n", decryptedtext);
+
+    // Clean up
+    RSA_free(rsa);
+    return 0;
+}
