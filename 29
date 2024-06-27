@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define ROWS 5
+#define COLS 5
+#define LANE_SIZE 64
+#define STATE_SIZE (ROWS * COLS * LANE_SIZE / 8)
+
+// SHA-3 internal state matrix
+typedef struct {
+    uint64_t lanes[ROWS][COLS];
+} StateMatrix;
+
+// Function to initialize the state matrix
+void initialize(StateMatrix *state) {
+    memset(state, 0, sizeof(StateMatrix));
+}
+
+// Function to absorb a message block into the state matrix
+void absorb(StateMatrix *state, const uint8_t *message_block) {
+    // Assuming message block size is 1024 bits (128 bytes)
+    for (int i = 0; i < 128; ++i) {
+        // XOR message block into the state matrix
+        state->lanes[i % ROWS][i / ROWS] ^= ((uint64_t)message_block[i]) << (8 * (i % 8));
+    }
+}
+
+// Function to print the state matrix (for demonstration purposes)
+void printState(const StateMatrix *state) {
+    printf("State Matrix:\n");
+    for (int i = 0; i < ROWS; ++i) {
+        for (int j = 0; j < COLS; ++j) {
+            printf("%016llx ", state->lanes[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    StateMatrix state;
+    uint8_t message_block[128] = {
+        // Example message block, can be replaced with actual data
+        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+        // Repeat for demonstration
+        0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+        // ...
+    };
+
+    // Initialize the state matrix
+    initialize(&state);
+
+    // Absorb the message block into the state matrix
+    absorb(&state, message_block);
+
+    // Print the state matrix (before permutation)
+    printState(&state);
+
+    return 0;
+}
+OUTPUT:
+State Matrix:
+0000000000000012 0000bc0000000000 0000000000560000 f000000000000000 0000000000000000
+0000000000003400 00de000000000000 0000000078000000 0000000000000000 0000000000000000
+0000000000560000 f000000000000000 0000009a00000000 0000000000000000 0000000000000000
+0000000078000000 0000000000000012 0000bc0000000000 0000000000000000 0000000000000000
+0000009a00000000 0000000000003400 00de000000000000 0000000000000000 0000000000000000
