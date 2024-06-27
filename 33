@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/des.h>
+
+// Function to perform DES encryption
+void des_encrypt(const unsigned char *plaintext, unsigned char *ciphertext, const unsigned char *key) {
+    DES_key_schedule schedule;
+    DES_set_key((DES_cblock *)key, &schedule);
+
+    DES_ecb_encrypt((DES_cblock *)plaintext, (DES_cblock *)ciphertext, &schedule, DES_ENCRYPT);
+}
+
+// Function to perform DES decryption
+void des_decrypt(const unsigned char *ciphertext, unsigned char *plaintext, const unsigned char *key) {
+    DES_key_schedule schedule;
+    DES_set_key((DES_cblock *)key, &schedule);
+
+    DES_ecb_encrypt((DES_cblock *)ciphertext, (DES_cblock *)plaintext, &schedule, DES_DECRYPT);
+}
+
+int main() {
+    unsigned char plaintext[] = "Hello, DES!"; // 64-bit plaintext
+    unsigned char key[8] = { 0x13, 0x34, 0x56, 0x79, 0x9A, 0xBC, 0xDF, 0x01 }; // 56-bit key
+    unsigned char ciphertext[8];
+    unsigned char decryptedtext[8];
+
+    printf("Plaintext: %s\n", plaintext);
+
+    // Encrypt the plaintext
+    des_encrypt(plaintext, ciphertext, key);
+    printf("Encrypted: ");
+    for (int i = 0; i < 8; ++i) {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\n");
+
+    // Decrypt the ciphertext
+    des_decrypt(ciphertext, decryptedtext, key);
+    decryptedtext[8] = '\0'; // Null-terminate the decrypted text
+    printf("Decrypted: %s\n", decryptedtext);
+
+    return 0;
+}
